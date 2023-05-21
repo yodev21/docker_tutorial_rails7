@@ -1,0 +1,39 @@
+version: '3'
+services:
+  db:
+    # postgresのイメージを取得
+    image: postgres
+    environment:
+      POSTGRES_USER: 'postgresql'
+      POSTGRES_PASSWORD: 'postgresql-pass'
+    restart: always
+    volumes:
+      - pgdatavol:/var/lib/postgresql/data
+  web:
+    # Dockerfileからイメージをビルドして使用
+    build: .
+    # コンテナ起動時に実行
+    command: bash -c "rm -rf tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    # カレントディレクトリを/myappにバインドマウント
+    volumes:
+      - .:/myapp
+    # 3000で公開して、コンテナの3000へ転送
+    ports:
+      - "3000:3000"
+    # Webサービスを起動する前にdbサービスを起動
+    depends_on:
+      - db
+    environment:
+      WEBPACKER_DEV_SERVER_HOST: webpacker
+  webpacker:
+    build: .
+    volumes:
+      - .:/myapp
+    command: ./bin/webpack-dev-server
+    environment:
+      WEBPACKER_DEV_SERVER_HOST: 0.0.0.0
+    ports:
+      - "3035:3035"
+# データ永続化のためにpgdatabolのvolumeを作成し、postgresqlのデータ領域をマウント
+volumes:
+  pgdatavol:
